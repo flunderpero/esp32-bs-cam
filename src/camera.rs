@@ -1,7 +1,9 @@
+use anyhow::{bail, Ok, Result};
 use esp_idf_sys::camera::*;
 use log::*;
 
-pub fn init() {
+pub fn init() -> Result<()> {
+    info!("Initializing camera ...");
     let camera_config = esp_idf_sys::camera::camera_config_t {
         pin_pwdn: 32,
         pin_reset: -1,
@@ -37,9 +39,8 @@ pub fn init() {
         grab_mode: esp_idf_sys::camera::camera_grab_mode_t_CAMERA_GRAB_WHEN_EMPTY,
     };
     if unsafe { esp_idf_sys::camera::esp_camera_init(&camera_config) } != 0 {
-        info!("camera init failed!");
-        return;
-    } else {
-        info!("camera ready! >>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        bail!("Failed to initialize camera");
     }
+    info!("Camera initialized");
+    return Ok({});
 }

@@ -1,5 +1,6 @@
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 use log::*;
+mod camera;
 
 fn main() {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -9,4 +10,5 @@ fn main() {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     info!("Hello, world!");
+    camera::init()
 }

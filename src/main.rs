@@ -1,13 +1,13 @@
 // This is needed because we use the `binstart` feature of `esp-idf-sys`.
-use esp_idf_sys as _;
-use log::*;
-mod camera;
-mod net;
 use anyhow::{Context, Result};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::prelude::Peripherals;
 use esp_idf_svc::{eventloop::EspSystemEventLoop, nvs::EspDefaultNvsPartition};
+use esp_idf_sys as _;
+use log::*;
 use std::{thread::sleep, time::Duration};
+mod camera;
+mod net;
 
 fn main() -> Result<()> {
     esp_idf_sys::link_patches();
@@ -23,6 +23,8 @@ fn main() -> Result<()> {
     camera::init()?;
     led.set_low()?;
     info!("Ready");
+    let data = b"Test";
+    net::upload(data, "test")?;
     loop {
         info!("Just sleeping ...");
         sleep(Duration::new(10, 0));

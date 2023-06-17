@@ -22,7 +22,7 @@ fn main(){
     led.set_low().unwrap();
     let sys_loop = EspSystemEventLoop::take().context("Failed to get `sys_loop`").unwrap();
     let nvs = EspDefaultNvsPartition::take().unwrap();
-    let _wifi = net::init(sys_loop.clone(), peripherals.modem, nvs.clone()).unwrap();
+    let _wifi = net::init(sys_loop, peripherals.modem, nvs).unwrap();
     camera::init().unwrap();
     let _sntp = net::sntp().unwrap();
     let statistics = Arc::new(Mutex::new(Statistics {
@@ -43,7 +43,7 @@ fn main(){
         let mut stats = statistics.lock().unwrap();
         stats.capture_count += 1;
         stats.last_capture_date_time = Some(now);
-        stats.last_capture_name = Some(name.clone());
+        stats.last_capture_name = Some(name);
         sleep(Duration::from_millis(100));
     }
 }

@@ -43,7 +43,7 @@ pub fn init() -> Result<()> {
         bail!("Failed to initialize camera");
     }
     info!("Camera initialized");
-    return Ok({});
+    Ok(())
 }
 
 pub fn capture_image() -> Result<Vec<u8>> {
@@ -55,6 +55,6 @@ pub fn capture_image() -> Result<Vec<u8>> {
         info!("Photo taken, {} bytes JPEG", len);
         buf.set_len(len);
         esp_camera_fb_return(pic);
-        return Ok(buf);
+        Ok(buf)
     }
 }

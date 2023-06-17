@@ -42,7 +42,7 @@ pub fn init(
         sleep(Duration::from_secs(1));
     }
     info!("WiFi connection established");
-    return Ok(Box::new(wifi));
+    Ok(Box::new(wifi))
 }
 
 pub fn sntp() -> Result<Box<sntp::EspSntp>> {
@@ -53,7 +53,7 @@ pub fn sntp() -> Result<Box<sntp::EspSntp>> {
         sleep(Duration::from_secs(1));
     }
     info!("SNTP initialzied");
-    return Ok(Box::new(sntp));
+    Ok(Box::new(sntp))
 }
 
 pub struct Uploader {

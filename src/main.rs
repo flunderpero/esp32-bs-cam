@@ -12,15 +12,15 @@ use std::{ptr, thread::sleep, time::Duration};
 mod camera;
 mod net;
 
-fn main(){
+fn main() {
     esp_idf_sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
     info!("Starting up ...");
-    let peripherals = Peripherals::take().context("Failed to get `peripherals`").unwrap();
+    let peripherals = Peripherals::take().unwrap();
     // Light up built-in red LED during setup.
     let mut led = PinDriver::output(peripherals.pins.gpio33).unwrap();
     led.set_low().unwrap();
-    let sys_loop = EspSystemEventLoop::take().context("Failed to get `sys_loop`").unwrap();
+    let sys_loop = EspSystemEventLoop::take().unwrap();
     let nvs = EspDefaultNvsPartition::take().unwrap();
     let _wifi = net::init(sys_loop, peripherals.modem, nvs).unwrap();
     camera::init().unwrap();
@@ -35,16 +35,22 @@ fn main(){
     // Setup is done.
     info!("Ready");
     led.set_high().unwrap();
+    let mut last_capture_secs = now().unwrap().timestamp();
     loop {
-        let data = camera::capture_image().unwrap();
+        // We want to capture at most 1 image per second.
+        while now().unwrap().timestamp() - last_capture_secs < 1 {
+            info!("Wow, we're too fast, waiting a bit");
+            sleep(Duration::from_millis(100));
+        }
         let now = now().unwrap();
+        last_capture_secs = now.timestamp();
+        let data = camera::capture_image().unwrap();
         let name = format!("test_{}.jpg", iso_format(now));
         uploader.upload(&data[..], name.as_str()).unwrap();
         let mut stats = statistics.lock().unwrap();
         stats.capture_count += 1;
         stats.last_capture_date_time = Some(now);
         stats.last_capture_name = Some(name);
-        sleep(Duration::from_millis(100));
     }
 }
 

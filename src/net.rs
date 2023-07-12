@@ -50,6 +50,7 @@ pub fn sntp() -> Result<Box<sntp::EspSntp>> {
     let sntp = sntp::EspSntp::new_default()?;
     info!("SNTP waiting for status ...");
     while sntp.get_sync_status() != SyncStatus::Completed {
+        info!("Waiting for SNTP to be in sync: {:?}", sntp.get_sync_status());
         sleep(Duration::from_secs(1));
     }
     info!("SNTP initialzied");
@@ -65,10 +66,13 @@ impl Uploader {
         let connection = EspHttpConnection::new(&HTTPConfiguration {
             use_global_ca_store: true,
             crt_bundle_attach: Some(esp_idf_sys::esp_crt_bundle_attach),
+            timeout: Some(Duration::from_secs(20)),
+            buffer_size: Some(100000),
+            buffer_size_tx: Some(100000),
             ..Default::default()
         })?;
         let client = Client::wrap(connection);
-        Ok(Uploader{client})
+        Ok(Uploader { client })
     }
 
     pub fn upload(&mut self, data: &[u8], name: &str) -> Result<()> {
@@ -77,7 +81,9 @@ impl Uploader {
         let content_length_header = format!("{}", data.len());
         let headers = [
             ("content-type", "image/jpeg"),
-            ("connection", "keep-alive"),
+            // Don't use this keep-alive header here, it makes things
+            // slower and slower over time.
+            // ("connection", "keep-alive"),
             ("content-length", &*content_length_header),
         ];
         info!("Posting to URL: {}, content-length: {}", url, data.len());
@@ -94,8 +100,9 @@ impl Uploader {
                 if size == 0 {
                     break;
                 }
-                let response_text = str::from_utf8(&buf[..size])?;
-                info!("{}", response_text);
+                let response_text =
+                    str::from_utf8(&buf[..size]).unwrap_or("Failed to parse response");
+                info!("Response: {}", response_text);
             }
         }
         res.release();

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>BS Cam Viewer</title>
+    <script>
+        const image_url = new URLSearchParams(location.search).get("url");
+        let timestamp = Math.floor(Date.now() / 1000);
+        const $ = document.querySelector.bind(document);
+        addEventListener("load", () => {
+            const _ = {
+                minus5: $("#minus5"),
+                minus60: $("#minus60"),
+                plus5: $("#plus5"),
+                plus60: $("#plus60"),
+                start: $("#start"),
+                stop: $("#stop"),
+                timestamp: $("#timestamp"),
+                player: $("#player"),
+            }
+            let main_interval;
+            start();
+            _.minus5.addEventListener("click", () => {
+                timestamp -= 5;
+            });
+            _.plus5.addEventListener("click", () => {
+                timestamp = Math.min(
+                    Math.floor(Date.now() / 1000),
+                    timestamp + 5
+                );
+            });
+            _.minus60.addEventListener("click", () => {
+                timestamp -= 60;
+            });
+            _.plus60.addEventListener("click", () => {
+                timestamp = Math.min(
+                    Math.floor(Date.now() / 1000),
+                    timestamp + 60
+                );
+            });
+            _.timestamp.addEventListener("change", e => {
+                timestamp = Math.floor(new Date(e.target.value).getTime() / 1000)
+            })
+            _.start.addEventListener("click", start);
+            _.stop.addEventListener("click", stop);
+            function start() {
+                _.start.disabled = true;
+                _.stop.disabled = false;
+                main_interval = setInterval(() => {
+                    if (document.activeElement == _.timestamp) {
+                        return
+                    }
+                    let date_time = new Date(timestamp * 1000);
+                    let [date, time] = date_time.toISOString().split("T");
+                    timestamp += 1;
+                    time = time.slice(0, 8);
+                    // Why oh why can't we just use `date_time.toString()`?
+                    _.timestamp.value = date_time.getFullYear() + "-" +
+                        (date_time.getMonth() + 1).toString().padStart(2, "0") + "-" +
+                        date_time.getDate().toString().padStart(2, "0") + "T" +
+                        date_time.getHours().toString().padStart(2, "0") + ":" +
+                        date_time.getMinutes().toString().padStart(2, "0") + ":" +
+                        date_time.getSeconds().toString().padStart(2, "0")
+                    const img = new Image();
+                    img.onload = () => {
+                        _.player.src = img.src;
+                        _.player.classList.remove("error")
+                    };
+                    img.onerror = () => {
+                        _.player.classList.add("error")
+                    }
+                    img.src = `${image_url}/test_${date.replace(/-/g, "")}T${time.replace(/:/g, "")}Z.jpg`;
+                }, 1000);
+            }
+            function stop() {
+                _.start.disabled = false;
+                _.stop.disabled = true;
+                clearInterval(main_interval);
+            }
+        });
+    </script>
+    <style>
+        body {
+            margin: 2em;
+            font-family: Arial;
+        }
+        * {
+            color: lightgray;
+            background-color: black;
+        }
+        button, input {
+            display: block;
+            padding: 0.5em;
+            background-color: darkviolet;
+            border: 1px solid violet;
+            border-radius: 5px;
+            font-size: 18px;
+            font-family: Arial;
+        }
+        button:hover, input:hover {
+            background-color: violet;
+        }
+        #player {
+            border: 1px solid black;
+            width: 100%;
+            display: block;
+        }
+        #player.error {
+            border: 1px solid red;
+        }
+        nav {
+            margin-top: 1em;
+            display: flex;
+            gap: 1em;
+            align-items: space-around;
+            width: fit-content;
+            margin-inline: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>BS Cam Viewer</h1>
+    <img id="player" />
+    <nav>
+        <button id="minus60">-1 min</button>
+        <button id="minus5">-5 sec</button>
+        <input type="datetime-local" id="timestamp" step="1" />
+        <button id="plus5">+ 5 sec</button>
+        <button id="plus60">+ 1 min</button>
+        <button id="start" disabled>Start</button>
+        <button id="stop">Stop</button>
+    </nav>
+</body>
+
+</html>

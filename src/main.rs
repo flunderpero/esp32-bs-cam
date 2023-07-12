@@ -3,17 +3,31 @@ use chrono::NaiveDateTime;
 use embedded_svc::{http::Method, io::Write};
 use esp_idf_hal::gpio::*;
 use esp_idf_hal::prelude::Peripherals;
+use esp_idf_hal::reset::restart;
 use esp_idf_svc::http::server::EspHttpServer;
 use esp_idf_svc::{eventloop::EspSystemEventLoop, nvs::EspDefaultNvsPartition};
-use esp_idf_sys::{self as _, time, time_t};
+use esp_idf_sys::{self as _, time, time_t, heap_caps_get_info, esp_get_free_heap_size};
 use log::*;
+use serde::Serialize;
 use std::sync::{Arc, Mutex};
-use std::{ptr, thread::sleep, time::Duration, ops::Deref};
-use serde::{Serialize};
+use std::{ops::Deref, ptr, thread::sleep, time::Duration};
 mod camera;
 mod net;
 
 const ERROR_THRESHOLD: u32 = 100;
+
+#[derive(Serialize)]
+struct Statistics {
+    startup_at: i64,
+    last_capture_at: Option<i64>,
+    last_capture_name: Option<String>,
+    #[serde(skip_serializing)]
+    last_capture: Option<Vec<u8>>,
+    capture_count: u32,
+    capture_count_since_last_error: u32,
+    last_error: Option<String>,
+    error_count: u32,
+}
 
 fn main() {
     esp_idf_sys::link_patches();
@@ -38,7 +52,9 @@ fn main() {
         last_error: None,
         error_count: 0,
     }));
-    let _http_server = setup_http_server(statistics.clone()).unwrap();
+    if let Some(_) = option_env!("BS_ENABLE_HTTP_SERVER") {
+        let _http_server = setup_http_server(statistics.clone()).unwrap();
+    }
     // Setup is done.
     info!("Ready");
     led.set_high().unwrap();
@@ -46,9 +62,10 @@ fn main() {
         if let Err(error) = main_loop(statistics.clone()) {
             let mut stats = statistics.lock().unwrap();
             stats.error_count += 1;
-            stats.capture_count_since_last_error =  0;
+            stats.capture_count_since_last_error = 0;
             if stats.error_count >= ERROR_THRESHOLD {
-                panic!("There have been too many errors, restarting");
+                info!("There have been too many errors, restarting");
+                restart()
             }
             info!("That's an error - resuming operation: {}", error);
             stats.last_error = Some(format!("[{}]: {}", iso_format(now()), error));
@@ -63,7 +80,7 @@ fn main_loop(statistics: Arc<Mutex<Statistics>>) -> Result<()> {
     loop {
         // We want to capture at most 1 image per second.
         while now() - last_capture_at < 1 {
-            info!("Wow, we're too fast, waiting a bit");
+            // We're quite fast, I like it - waiting a bit to make sure we keep 1fps.
             sleep(Duration::from_millis(100));
         }
         last_capture_at = now();
@@ -76,20 +93,8 @@ fn main_loop(statistics: Arc<Mutex<Statistics>>) -> Result<()> {
         stats.capture_count_since_last_error += 1;
         stats.last_capture_at = Some(last_capture_at);
         stats.last_capture_name = Some(name);
+        info!("Available heap: {}", unsafe {esp_get_free_heap_size()});
     }
-}
-
-#[derive(Serialize)]
-struct Statistics {
-    startup_at: i64,
-    last_capture_at: Option<i64>,
-    last_capture_name: Option<String>,
-    #[serde(skip_serializing)]
-    last_capture: Option<Vec<u8>>,
-    capture_count: u32,
-    capture_count_since_last_error: u32,
-    last_error: Option<String>,
-    error_count: u32,
 }
 
 fn setup_http_server(statistics: Arc<Mutex<Statistics>>) -> Result<EspHttpServer> {

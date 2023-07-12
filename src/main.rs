@@ -6,7 +6,7 @@ use esp_idf_hal::prelude::Peripherals;
 use esp_idf_hal::reset::restart;
 use esp_idf_svc::http::server::EspHttpServer;
 use esp_idf_svc::{eventloop::EspSystemEventLoop, nvs::EspDefaultNvsPartition};
-use esp_idf_sys::{self as _, time, time_t, heap_caps_get_info, esp_get_free_heap_size};
+use esp_idf_sys::{self as _, esp_get_free_heap_size, heap_caps_get_info, time, time_t};
 use log::*;
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
@@ -93,7 +93,7 @@ fn main_loop(statistics: Arc<Mutex<Statistics>>) -> Result<()> {
         stats.capture_count_since_last_error += 1;
         stats.last_capture_at = Some(last_capture_at);
         stats.last_capture_name = Some(name);
-        info!("Available heap: {}", unsafe {esp_get_free_heap_size()});
+        info!("Available heap: {}", unsafe { esp_get_free_heap_size() });
     }
 }
 

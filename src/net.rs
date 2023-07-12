@@ -50,7 +50,10 @@ pub fn sntp() -> Result<Box<sntp::EspSntp>> {
     let sntp = sntp::EspSntp::new_default()?;
     info!("SNTP waiting for status ...");
     while sntp.get_sync_status() != SyncStatus::Completed {
-        info!("Waiting for SNTP to be in sync: {:?}", sntp.get_sync_status());
+        info!(
+            "Waiting for SNTP to be in sync: {:?}",
+            sntp.get_sync_status()
+        );
         sleep(Duration::from_secs(1));
     }
     info!("SNTP initialzied");

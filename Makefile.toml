@@ -1,0 +1,32 @@
+[tasks.install-espflash]
+command = "cargo"
+args = ["install", "cargo-espflash", "--version=2.0.0-rc.4"]
+
+[tasks.install-espup]
+command = "cargo"
+args = ["install", "espup"]
+
+[tasks.install-espup-install]
+command = "espup"
+args = ["install"]
+
+
+[tasks.install-ldproxy]
+command = "cargo"
+args = ["install", "ldproxy"]
+
+[tasks.install]
+dependencies = [
+  "install-espflash",
+  "install-espup",
+  "install-espup-install",
+  "install-ldproxy",
+]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+
+[tasks.flash]
+command = "cargo"
+args = ["espflash", "flash", "--monitor"]
